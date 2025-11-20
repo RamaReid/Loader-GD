@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Arranque: Doble animación → Base</title>
+  <style>
+    html,body{height:100%;margin:0;background:#f5f5f5;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial}
+    .frame{width:100%;height:100%;border:0;display:block}
+    .center{display:flex;align-items:center;justify-content:center;height:100%}
+    .notice{position:fixed;left:12px;bottom:12px;padding:8px 12px;background:rgba(0,0,0,0.6);color:#fff;border-radius:6px;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="center">
+    <iframe id="dobleFrame" class="frame" src="Doble animacion GD.html" title="Doble animacion"></iframe>
+  </div>
+  <div class="notice">Cargando animación inicial… (se dirigirá automáticamente al final)</div>
+
+  <script>
+    (function(){
+      const iframe = document.getElementById('dobleFrame');
+      const MAX_FALLBACK = 18000; // fallback redirect after 18s
+      const POLL_INTERVAL = 250;
+      let redirected = false;
+
+      function tryRedirect(){
+        if(redirected) return;
+        redirected = true;
+        // small delay to let final frame settle
+        setTimeout(()=> location.href = 'GDanimado.html', 80);
+      }
+
+      // Try to observe the iframe document for the SVG being hidden (the Doble script hides it at the end)
+      function pollFrame(){
+        try{
+          const doc = iframe.contentDocument || iframe.contentWindow.document;
+          if(!doc) return false;
+          const svg = doc.querySelector('svg');
+          if(svg){
+            const vis = (svg.style.visibility || getComputedStyle(svg).visibility || '').toLowerCase();
+            const op = parseFloat(svg.style.opacity || getComputedStyle(svg).opacity || '1');
+            if(vis === 'hidden' || op === 0){
+              tryRedirect();
+              return true;
+            }
+          }
+        }catch(e){
+          // cross-origin or not accessible — we fall back to timeout
+          return false;
+        }
+        return false;
+      }
+
+      const pollTimer = setInterval(()=>{
+        if(pollFrame()) clearInterval(pollTimer);
+      }, POLL_INTERVAL);
+
+      // Fallback: after MAX_FALLBACK ms, redirect anyway
+      setTimeout(()=>{
+        if(!redirected) tryRedirect();
+      }, MAX_FALLBACK);
+
+      // If iframe fails to load (error), fallback after shorter time
+      iframe.addEventListener('error', ()=>{
+        if(!redirected) setTimeout(tryRedirect, 400);
+      });
+
+    })();
+  </script>
+</body>
+</html>
